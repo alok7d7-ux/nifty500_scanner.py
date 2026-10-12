@@ -2,7 +2,8 @@ name: Nifty 500 Breakout Scanner
 
 on:
   schedule:
-    - cron: '*/10 4-9 * * 1-5' # Runs during NSE market hours (approx 04:15 - 10:00 UTC)
+    - cron: '*/10 4-9 * * 1-5' # Runs automatically every 10 mins during NSE market hours
+  workflow_dispatch: # <-- THIS LETS YOU RUN IT MANUALLY ANYTIME
 
 jobs:
   scanner:
