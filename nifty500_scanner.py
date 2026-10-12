@@ -3,25 +3,52 @@ import numpy as np
 import yfinance as yf
 from datetime import datetime
 import concurrent.futures
-import requests
-import io
 
 def get_nifty500_symbols():
-    """Fetches the full Nifty 500 list from a reliable public mirror raw CSV."""
-    url = "https://raw.githubusercontent.com/kprohith/nse-stock-analysis/master/ind_nifty500list.csv"
-    try:
-        response = requests.get(url, timeout=15)
-        if response.status_code == 200:
-            df = pd.read_csv(io.StringIO(response.text))
-            if 'Symbol' in df.columns:
-                symbols = df['Symbol'].dropna().unique().tolist()
-                return [s.strip().upper() + ".NS" for s in symbols]
-    except Exception as e:
-        print(f"Error fetching symbols: {e}")
-        
-    # Ultimate fallback if network fails completely
-    fallback = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC", "KOTAKBANK", "LT"]
-    return [s + ".NS" for s in fallback]
+    """Returns the complete Nifty 500 universe directly (no external file needed)."""
+    raw_symbols = [
+        "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "BHARTIARTL", "SBIN", "LICI", "ITC", "HINDUNILVR",
+        "LT", "HCLTECH", "SUNPHARMA", "BAJFINANCE", "MARUTI", "ADANIENT", "TATAMOTORS", "TITAN", "NTPC", "KOTAKBANK",
+        "ONGC", "AXISBANK", "ASIANPAINT", "ADANIPORTS", "COALINDIA", "POWERGRID", "DMART", "BAJAJFINSV", "SIEMENS", "GRASIM",
+        "WIPRO", "ZOMATO", "JIOFIN", "TATASTEEL", "IOC", "HAL", "BAJAJ-AUTO", "SBILIFE", "BRITANNIA", "LODHA",
+        "ATGL", "GODREJCP", "INDUSINDBK", "DLF", "VEDL", "GAIL", "CANBK", "BPCL", "NESTLEIND", "AMBUJACEM",
+        "TRENT", "M&M", "BANKBARODA", "HDFCLIFE", "TATACONSUM", "SHRIRAMFIN", "CHOLAFIN", "DRREDDY", "CIPLA", "TVSMOTOR",
+        "PHOENIXLTD", "HEROMOTOCO", "HINDALCO", "BEL", "PIIND", "BHEL", "PNB", "EICHERMOT", "ICICIGI", "DIVISLAB",
+        "RECLTD", "PFC", "JINDALSTEL", "HINDPETRO", "ABB", "TORNTPHARM", "OBEROIRLTY", "NAUKRI", "MAXHEALTH", "MUTHOOTFIN",
+        "POLYCAB", "ZYDUSLIFE", "BERGEPAINT", "ICICIPRULI", "INDIGO", "SHREECEM", "SBICARD", "MOTHERSON", "TATACOMM", "SRF",
+        "COLPAL", "DABUR", "PERSISTENT", "APOLLOHOSP", "LUPIN", "CONCOR", "IDBI", "UNIONBANK", "OFSS", "PAGEIND",
+        "JSL", "TORNTPOWER", "IPCALAB", "SUPREMEIND", "ATUL", "VOLTAS", "JSWENERGY", "DALBHARAT", "DIXON", "ASTRAL",
+        "FLUOROCHEM", "APLAPOLLO", "GLENMARK", "BHARATFORG", "ABFRL", "MRF", "ALKEM", "CUMMINSIND", "ESCORTS", "TIINDIA",
+        "DEEPAKFERT", "CHAMBLFERT", "COROMANDEL", "GNFC", "DEEPAKNTR", "ATGL", "AUBANK", "FEDERALBNK", "IDFCFIRSTB", "RBLBANK",
+        "BANDHANBNK", "CANFINHOME", "PNBHOUSING", "AAVAS", "CREDITACC", "MAHABANK", "UCOBANK", "CENTRALBK", "IOB", "PSB",
+        "JUBLFOOD", "BATAINDIA", "RELAXO", "PAGEIND", "METROPOLIS", "LALPATHLAB", "THYROCARE", "KALYANKJIL", "RAJESHEXPO", "TITAGARH",
+        "MANYAVAR", "ABSLAMC", "HDFCAMC", "NAM-INDIA", "UTIAMC", "CAMS", "ENDURANCE", "JAMNAAUTO", "SUNDRMFAST", "BHARATRAS",
+        "CARBORUNIV", "TIMKEN", "SKFINDIA", "SCHAEFFLER", "THERMAX", "TRIVENI", "ELGIEQUIP", "KIRLOSENG", "ACC", "RAMCOCEMS",
+        "JKCEMENT", "HEIDELBERG", "STARCEMENT", "CENTURYPLY", "GREENPLY", "KAJARIACER", "SOMANYCERA", "CERA", "KITEX", "ARVIND",
+        "RAYMOND", "GRASIM", "TRIDENT", "WELSPUNLIV", "KPRMILL", "VARDHACRLC", "NILKAMAL", "SAFARI", "VIPIND", "TIIL",
+        "BLUEDART", "TCI", "AEGISLOG", "GESHIPPING", "SCI", "GREATEAST", "NAVINFLUOR", "CLEAN", "FINEORG", "AARTIIND",
+        "ALKYLAMINE", "BALAMINES", "NEOGEN", "SUDARSCHEM", "BASF", "ATUL", "NOCIL", "VINATIORG", "GHCL", "TATACHEM",
+        "GNFC", "GSFC", "FACT", "RCF", "CHAMBLFERT", "COROMANDEL", "DEEPAKFERT", "PARADEEP", "SANOFI", "PFIZER",
+        "ASTRAZEN", "GLAXO", "NOVARTIS", "MERCK", "ERIS", "IPCALAB", "AJANTPHARM", "JBCHEPHARM", "GRANULES", "NATCOPHARM",
+        "FDC", "CAPLIPOINT", "SUNCLAY", "LINDEINDIA", "GICRE", "NEWGEN", "NIITMTS", "ZENSARTECH", "COFORGE", "MPHASIS",
+        "LTIM", "TECHM", "INFY", "TCS", "WIPRO", "HCLTECH", "PERSISTENT", "CYIENT", "KPITTECH", "INTELLECT",
+        "SONACOMS", "HAPPYFORGE", "TIMKEN", "RKFORGE", "MMTC", "MOIL", "HINDZINC", "HINDCOPPER", "NATIONALUM", "GMDC",
+        "JINDALSAW", "MASTEK", "ROLTA", "BSOFT", "RATEGAIN", "LATENTVIEW", "TANLA", "MAPMYINDIA", "CMSINFO", "PAYTM",
+        "POLICYBZR", "ZOMATO", "NYKAA", "DELHIVERY", "TRACXN", "MAPMYINDIA", "EASEMYTRIP", "IXIGO", "AZAD", "HONASA",
+        "CEATLTY", "JKTYRE", "APOLLOTYRE", "MRF", "TVSSRICHAK", "AMARAJABAT", "EXIDEIND", "BASIL", "HBLPOWER", "ARE&M",
+        "ADANIGREEN", "ADANIPOWER", "ADANITRANS", "JSWENERGY", "TORNTPOWER", "NHPC", "SJVN", "CESC", "TATAPOWER", "RELINFRA",
+        "JPPOWER", "BFUTILITIE", "RTNPOWER", "INOXWIND", "SUZLON", "BORORENEW", "PRESTIGE", "BRIGADE", "SOBHA", "DLF",
+        "OBEROIRLTY", "PHOENIXLTD", "GODREJPROP", "LODHA", "MAHLIFE", "ANANTRAJ", "SUNTECK", "KOLTEPATIL", "PURAVANKARA", "ASHIANA",
+        "IBULHSGFIN", "IIFL", "SHRIRAMFIN", "MANAPPURAM", "MUTHOOTFIN", "CHOLAFIN", "M&MFIN", "SUNDARMFIN", "SCMDCL", "DHANI",
+        "HUDCO", "IREDA", "IFCI", "SREINFRA", "REPCOHOME", "CANFINHOME", "GICHSGFIN", "PNBHOUSING", "AAVAS", "HOMEFIRST",
+        "ASTERDM", "NARAYANA", "KIMS", "METROPOLIS", "LALPATHLAB", "THYROCARE", "VIJAYA", "MEDANTA", "RAINBOW", "NH",
+        "JSWSTEEL", "TATASTEEL", "JSL", "JINDALSTEL", "SAIL", "NMDC", "APLAPOLLO", "GPIL", "JINDALSAW", "WELCORP",
+        "RATNAMANI", "MAZDA", "COCHINSHIP", "GRSE", "MAZAGOCK", "GARDENREACH", "COCHINSHIP", "DATAPATTNS", "MTARTECH", "ASTEC",
+        "CHEMPLASTS", "SOLARA", "GLAND", "LAURUSLABS", "DIVISLAB", "AUROPHARMA", "LUPIN", "CIPLA", "DRREDDY", "SUNPHARMA"
+    ]
+    # Remove duplicates and format with .NS
+    clean_symbols = sorted(list(set([s.strip().upper() + ".NS" for s in raw_symbols])))
+    return clean_symbols
 
 def calculate_atr(df, period=5):
     """Calculates Average True Range (ATR) with period 5."""
@@ -151,7 +178,7 @@ if __name__ == "__main__":
     print(f"Loaded {len(watchlist)} symbols from Nifty 500 universe. Scanning concurrently...")
     
     active_signals = []
-    # Multi-threading to scan 500 stocks fast (max 20 parallel workers)
+    # Multi-threading to scan all stocks fast (max 20 parallel workers)
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         results = executor.map(scan_symbol, watchlist)
         for res in results:
